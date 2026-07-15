@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function Modal({
   open,
@@ -15,6 +16,10 @@ export function Modal({
   children: React.ReactNode;
   maxWidth?: string;
 }) {
+  // Portal 目标：等挂载后再拿 document.body（避免 SSR 阶段访问 document）
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -28,9 +33,11 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // 通过 portal 渲染到 body，跳出 header 的 backdrop-filter 定位牢笼，
+  // 让 fixed inset-0 重新以整个视口为基准（否则弹窗顶部会被截断）。
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
       onMouseDown={onClose}
@@ -58,6 +65,7 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
