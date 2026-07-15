@@ -1,103 +1,112 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { formatMinutes } from "@/lib/scoring";
 import { PLAN_END, PLAN_START } from "@/lib/activities";
 
-function Ring({ score, max }: { score: number; max: number }) {
-  const size = 108;
-  const stroke = 10;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = max > 0 ? score / max : 0;
-  return (
-    <svg width={size} height={size} className="shrink-0">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--border)"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--brand)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - pct)}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: "stroke-dashoffset .5s ease" }}
-      />
-      <text
-        x="50%"
-        y="46%"
-        textAnchor="middle"
-        className="tnum fill-[var(--ink)] text-2xl font-bold"
-      >
-        {score}
-      </text>
-      <text
-        x="50%"
-        y="64%"
-        textAnchor="middle"
-        className="fill-[var(--muted)] text-xs"
-      >
-        / {max} 分
-      </text>
-    </svg>
-  );
+const DAY = 86400000;
+
+function planTiming() {
+  const start = new Date(PLAN_START + "T00:00:00").getTime();
+  const end = new Date(PLAN_END + "T23:59:59").getTime();
+  const now = Date.now();
+  const total = Math.max(1, end - start);
+  const elapsed = Math.min(Math.max(now - start, 0), total);
+  const daysLeft = Math.max(0, Math.ceil((end - now) / DAY));
+  return { elapsedFraction: elapsed / total, daysLeft };
 }
 
-function daysLeft(): number {
-  const end = new Date(PLAN_END + "T23:59:59");
-  const now = new Date();
-  return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+function Dial({
+  fraction,
+  color,
+  value,
+  caption,
+  label,
+}: {
+  fraction: number;
+  color: string;
+  value: string;
+  caption?: string;
+  label: string;
+}) {
+  const size = 132;
+  const stroke = 12;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(fraction, 0), 1);
+  return (
+    <div className="flex flex-col items-center gap-2.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--surface-2)"
+            strokeWidth={stroke}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={c * (1 - pct)}
+            style={{ transition: "stroke-dashoffset .6s ease" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="stat-num text-4xl text-ink">{value}</span>
+          {caption && (
+            <span className="mt-0.5 text-xs font-medium text-muted">
+              {caption}
+            </span>
+          )}
+        </div>
+      </div>
+      <span className="stat-label">{label}</span>
+    </div>
+  );
 }
 
 export function ScoreSummary() {
   const { compute, ready } = useStore();
   const { totals } = compute;
+  const score = ready ? totals.score : 0;
+  // planTiming() 依赖 Date.now()，只有挂载后（ready）才计算，
+  // 否则服务端与客户端首帧不一致会导致 hydration 报错。
+  const { elapsedFraction, daysLeft } = ready
+    ? planTiming()
+    : { elapsedFraction: 0, daysLeft: 0 };
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <Ring score={ready ? totals.score : 0} max={totals.max} />
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold text-ink">
-            我的修行进度
-          </h1>
-          <p className="mt-0.5 text-sm text-muted">
-            {PLAN_START} → {PLAN_END} · 还剩 {daysLeft()} 天
-          </p>
+    <section className="rounded-2xl border border-border bg-surface px-5 py-6 shadow-sm sm:px-6">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="stat-label">半年计划 · 进度</span>
+        <span className="text-xs font-medium text-muted">
+          {PLAN_START} → {PLAN_END}
+        </span>
+      </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-            <Stat label="累计用时" value={formatMinutes(totals.totalMinutes)} />
-            <Stat
-              label="每分用时"
-              value={
-                totals.score > 0
-                  ? formatMinutes(totals.minutesPerPoint)
-                  : "—"
-              }
-            />
-            <Stat label="已得分" value={`${totals.score} / ${totals.max}`} />
-          </div>
-        </div>
+      <div className="flex items-center justify-center gap-8 sm:gap-14">
+        <Dial
+          fraction={score / totals.max}
+          color="var(--brand)"
+          value={`${score}`}
+          caption={`/ ${totals.max} 分`}
+          label="总进度"
+        />
+        <Dial
+          fraction={elapsedFraction}
+          color="var(--muted)"
+          value={ready ? `${daysLeft}` : "—"}
+          caption="天"
+          label="剩余天数"
+        />
       </div>
     </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-surface-2 px-2 py-3">
-      <div className="tnum text-base font-semibold text-ink">{value}</div>
-      <div className="mt-0.5 text-xs text-muted">{label}</div>
-    </div>
   );
 }

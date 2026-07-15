@@ -13,7 +13,7 @@ export default function ScoreboardPage() {
       <div>
         <h1 className="text-xl font-semibold text-ink">计分表</h1>
         <p className="mt-0.5 text-sm text-muted">
-          每个项目达标得 1 分，满分 20。「每分用时」= 该项目为拿到这 1 分累计花的时间。点任意一行可记录 / 查看。
+          每个项目达标得 1 分，满分 20。点任意一行可记录 / 查看。
         </p>
       </div>
 

@@ -127,6 +127,7 @@ export const ACTIVITIES: ActivityDef[] = [
     target: 26,
     unit: "周",
     category: "修持",
+    weekly: true,
   },
   {
     id: 14,
@@ -146,6 +147,7 @@ export const ACTIVITIES: ActivityDef[] = [
     target: 26,
     unit: "周",
     category: "身心",
+    weekly: true,
   },
   {
     id: 16,
@@ -156,6 +158,7 @@ export const ACTIVITIES: ActivityDef[] = [
     target: 26,
     unit: "周",
     category: "身心",
+    weekly: true,
   },
   {
     id: 17,
@@ -170,12 +173,11 @@ export const ACTIVITIES: ActivityDef[] = [
     id: 18,
     title: "弘法会 / 讲座 / 读书会",
     description:
-      "至少参与 3 次弘法会 / 线上佛教讲座 / 读书会（共计至少 10 小时）。",
+      "至少参与 3 次弘法会 / 线上佛教讲座 / 读书会（建议共计约 10 小时）。",
     type: "counted",
     target: 3,
     unit: "次",
     category: "闻思",
-    minHours: 10,
   },
   {
     id: 19,

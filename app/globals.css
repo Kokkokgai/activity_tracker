@@ -1,38 +1,45 @@
 @import "tailwindcss";
 
-/* ---- 语义色板（浅色）---- */
+/* 自托管行楷字体（子集，仅含标题用字，约 3KB；不依赖 Google，墙内/断网可用）*/
+@font-face {
+  font-family: "Ma Shan Zheng Local";
+  src: url("/fonts/mashanzheng-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- Strava 风配色（浅色）---- */
 :root {
-  --canvas: #faf7f1;
+  --canvas: #f7f7fa;
   --surface: #ffffff;
-  --surface-2: #f4eee4;
-  --border: #e8e0d3;
-  --ink: #2a2521;
-  --muted: #857b6d;
-  --brand: #c1852c; /* 琥珀金 */
-  --brand-strong: #a26816;
-  --brand-soft: #f6ecd8;
-  --accent: #3f6b5e; /* 沉玉绿 */
-  --success: #4d8a5a;
-  --danger: #bd5340;
-  --ring: rgba(193, 133, 44, 0.35);
+  --surface-2: #f0f0f3;
+  --border: #e3e3e8;
+  --ink: #242428;
+  --muted: #6d6d78;
+  --brand: #fc4c02; /* Strava 橙 */
+  --brand-strong: #e03f00;
+  --brand-soft: #ffe8de;
+  --success: #1c9c5b;
+  --danger: #d63c2f;
+  --ring: rgba(252, 76, 2, 0.32);
 }
 
 /* ---- 深色 ---- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #16130e;
-    --surface: #211d15;
-    --surface-2: #2b261c;
-    --border: #3a3327;
-    --ink: #f0e9dc;
-    --muted: #a89e8c;
-    --brand: #e0a648;
-    --brand-strong: #f0bd6b;
-    --brand-soft: #322818;
-    --accent: #6fb09c;
-    --success: #6fbf7c;
-    --danger: #e17d66;
-    --ring: rgba(224, 166, 72, 0.4);
+    --canvas: #121214;
+    --surface: #1c1c20;
+    --surface-2: #26262b;
+    --border: #34343b;
+    --ink: #f2f2f4;
+    --muted: #9a9aa6;
+    --brand: #fc5200;
+    --brand-strong: #ff6a2b;
+    --brand-soft: #38210f;
+    --success: #35c07a;
+    --danger: #f0604f;
+    --ring: rgba(252, 82, 0, 0.4);
   }
 }
 
@@ -46,7 +53,6 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
-  --color-accent: var(--accent);
   --color-success: var(--success);
   --color-danger: var(--danger);
 }
@@ -64,14 +70,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 数字/计时器等宽 */
+/* 数字等宽对齐 */
 .tnum {
   font-variant-numeric: tabular-nums;
-  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas,
-    monospace;
 }
 
-/* 表单元素继承字色 */
+/* 行楷 / 毛笔书法体（Web 字体 + 系统行楷回退） */
+.font-kai {
+  font-family: "Ma Shan Zheng Local", "STXingkai", "华文行楷", "Xingkai SC",
+    "KaiTi", "楷体", "KaiTi SC", cursive;
+  font-weight: 400;
+}
+
+/* Strava 招牌：大号加粗数字 */
+.stat-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* Strava 招牌：小号大写标签 */
+.stat-label {
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 input,
 textarea,
 select,
@@ -80,7 +107,6 @@ button {
   color: inherit;
 }
 
-/* 聚焦环 */
 .focusring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--ring);

@@ -30,11 +30,14 @@ export default function DashboardPage() {
         const doneCount = items.filter((i) => i.done).length;
         return (
           <section key={cat}>
-            <div className="mb-3 flex items-baseline gap-3">
-              <h2 className="text-lg font-semibold text-ink">{cat}</h2>
-              <span className="text-xs text-muted">
-                {CATEGORY_HINT[cat]} · {doneCount}/{items.length} 达标
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-base font-extrabold tracking-tight text-ink">
+                {cat}
+              </h2>
+              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-muted">
+                {doneCount}/{items.length}
               </span>
+              <span className="stat-label ml-auto">{CATEGORY_HINT[cat]}</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((p) => (

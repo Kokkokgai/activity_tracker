@@ -14,16 +14,16 @@ export interface ActivityDef {
   category: Category;
   requiresPhoto?: boolean; // 需要拍照发群
   requiresGroupApproval?: boolean; // 需要群组同意
-  minHours?: number; // 仅 #18：除次数外，还需累计的总时长（小时）
+  weekly?: boolean; // 每周打卡：同一周只能记录一次
 }
 
 export interface LogEntry {
   id: string; // crypto.randomUUID()
   activityId: number;
   date: string; // YYYY-MM-DD
-  minutes: number; // 这次用时（分钟）
   note?: string;
-  proofUrl?: string; // 照片 / 视频 / 群消息链接
+  photo?: string; // 拍照证明：压缩后的图片 data URL
+  videoUrl?: string; // 观看视频 / 群消息等链接
 }
 
 export interface AppState {
@@ -34,7 +34,6 @@ export interface AppState {
 export interface ActivityProgress {
   def: ActivityDef;
   count: number; // 已记录次数（单位次数）
-  minutes: number; // 累计用时（分钟）
   done: boolean; // 是否达标（得分）
   fraction: number; // 0~1 进度
   logs: LogEntry[]; // 该项目的记录，按日期倒序

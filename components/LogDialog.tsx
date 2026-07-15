@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
-import { progressFor, formatMinutes } from "@/lib/scoring";
+import { progressFor, isWeekLogged } from "@/lib/scoring";
+import { compressImage } from "@/lib/image";
 import type { ActivityDef } from "@/lib/types";
 import { Modal } from "./Modal";
-import { Timer } from "./Timer";
 
 function todayLocal(): string {
   const d = new Date();
@@ -22,17 +22,20 @@ export function LogDialog({
 }) {
   const { logs, addLog, removeLog } = useStore();
   const [date, setDate] = useState(todayLocal());
-  const [minutes, setMinutes] = useState<string>("");
   const [note, setNote] = useState("");
-  const [proofUrl, setProofUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [photo, setPhoto] = useState<string>("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // 每次打开某项目时重置表单
   useEffect(() => {
     if (activity) {
       setDate(todayLocal());
-      setMinutes("");
       setNote("");
-      setProofUrl("");
+      setVideoUrl("");
+      setPhoto("");
+      setPhotoBusy(false);
     }
   }, [activity]);
 
@@ -44,21 +47,37 @@ export function LogDialog({
   if (!activity || !progress) return null;
 
   const wantsProof = activity.requiresPhoto || activity.requiresGroupApproval;
+  // 每周打卡：所选日期那一周是否已记录
+  const weekTaken = !!activity.weekly && isWeekLogged(progress.logs, date);
+
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      setPhoto(await compressImage(file));
+    } catch {
+      setPhoto("");
+    } finally {
+      setPhotoBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   function save() {
     if (!activity) return;
-    const mins = parseFloat(minutes);
+    if (activity.weekly && isWeekLogged(progress?.logs ?? [], date)) return;
     addLog({
       activityId: activity.id,
       date: date || todayLocal(),
-      minutes: Number.isFinite(mins) && mins > 0 ? mins : 0,
       note: note.trim() || undefined,
-      proofUrl: proofUrl.trim() || undefined,
+      photo: photo || undefined,
+      videoUrl: videoUrl.trim() || undefined,
     });
     // 保留日期，清空其余，方便连续记录
-    setMinutes("");
     setNote("");
-    setProofUrl("");
+    setVideoUrl("");
+    setPhoto("");
   }
 
   return (
@@ -80,43 +99,24 @@ export function LogDialog({
         <span className="text-muted">
           进度 {Math.min(progress.count, activity.target)}/{activity.target}{" "}
           {activity.unit}
-          {activity.minHours != null &&
-            ` · 时长 ${formatMinutes(progress.minutes)}/${activity.minHours} 小时`}
-          {activity.minHours == null &&
-            ` · 累计 ${formatMinutes(progress.minutes)}`}
         </span>
       </div>
 
-      <Timer onApply={(m) => setMinutes(String(m))} />
+      {activity.weekly && (
+        <p className="mb-4 rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
+          每周打卡：同一周只能记录一次（代表那一周完成了）。多做只算精进，不额外加分。
+        </p>
+      )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-muted">
-            日期
-          </span>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="focusring w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-muted">
-            用时（分钟）
-          </span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step={1}
-            placeholder="例如 15"
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
-            className="focusring w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm tnum"
-          />
-        </label>
-      </div>
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium text-muted">日期</span>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="focusring w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+        />
+      </label>
 
       <label className="mt-3 block">
         <span className="mb-1 block text-xs font-medium text-muted">
@@ -131,24 +131,86 @@ export function LogDialog({
         />
       </label>
 
+      {/* 拍照证明 */}
+      <div className="mt-3">
+        <span className="mb-1 block text-xs font-medium text-muted">
+          拍照证明（可选{activity.requiresPhoto ? "，此项建议拍照" : ""}）
+        </span>
+        {photo ? (
+          <div className="relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo}
+              alt="证明照片"
+              className="h-28 w-28 rounded-lg border border-border object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setPhoto("")}
+              className="focusring absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-xs text-white shadow"
+              aria-label="移除照片"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={photoBusy}
+            className="focusring flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-surface-2 text-xs text-muted hover:border-brand disabled:opacity-60"
+          >
+            {photoBusy ? (
+              "处理中…"
+            ) : (
+              <>
+                <span className="text-2xl leading-none">＋</span>
+                拍照 / 选图
+              </>
+            )}
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={onPickPhoto}
+        />
+      </div>
+
+      {/* 视频 / 链接 */}
       <label className="mt-3 block">
         <span className="mb-1 block text-xs font-medium text-muted">
-          证明链接（可选{wantsProof ? "，此项需拍照 / 群组同意" : ""}）
+          视频 / 链接（可选）
         </span>
         <input
           type="url"
-          placeholder="照片 / 视频 / 群消息链接"
-          value={proofUrl}
-          onChange={(e) => setProofUrl(e.target.value)}
+          placeholder="观看的视频链接 / 群消息链接…"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
           className="focusring w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
         />
       </label>
 
+      {wantsProof && (
+        <p className="mt-2 text-xs text-muted">
+          提示：此项{activity.requiresGroupApproval ? "需群组同意，" : ""}
+          可拍照或附链接作为证明。
+        </p>
+      )}
+
       <button
         onClick={save}
-        className="focusring mt-4 w-full rounded-xl bg-brand px-4 py-3 font-semibold text-white hover:bg-brand-strong"
+        disabled={weekTaken}
+        className="focusring mt-4 w-full rounded-xl bg-brand px-4 py-3 font-semibold text-white hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted"
       >
-        + 保存这一次记录
+        {activity.weekly
+          ? weekTaken
+            ? "✓ 本周已打卡"
+            : "✓ 本周打卡"
+          : "+ 保存这一次记录"}
       </button>
 
       {/* 历史记录 */}
@@ -159,32 +221,36 @@ export function LogDialog({
           </div>
           <ul className="divide-y divide-border rounded-xl border border-border">
             {progress.logs.map((l) => (
-              <li
-                key={l.id}
-                className="flex items-center gap-3 px-3 py-2 text-sm"
-              >
-                <span className="tnum text-muted">{l.date}</span>
-                <span className="tnum font-medium text-ink">
-                  {formatMinutes(l.minutes)}
-                </span>
+              <li key={l.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                {l.photo && (
+                  <a href={l.photo} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={l.photo}
+                      alt="证明"
+                      className="h-9 w-9 shrink-0 rounded object-cover"
+                    />
+                  </a>
+                )}
+                <span className="tnum shrink-0 text-muted">{l.date}</span>
                 {l.note && (
-                  <span className="truncate text-muted" title={l.note}>
+                  <span className="truncate text-ink" title={l.note}>
                     {l.note}
                   </span>
                 )}
-                {l.proofUrl && (
+                {l.videoUrl && (
                   <a
-                    href={l.proofUrl}
+                    href={l.videoUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-brand-strong underline"
+                    className="shrink-0 text-brand-strong underline"
                   >
                     链接
                   </a>
                 )}
                 <button
                   onClick={() => removeLog(l.id)}
-                  className="focusring ml-auto rounded px-1.5 py-0.5 text-xs text-danger hover:bg-surface-2"
+                  className="focusring ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs text-danger hover:bg-surface-2"
                   aria-label="删除这条记录"
                 >
                   删除

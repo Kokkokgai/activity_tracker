@@ -16,6 +16,8 @@ const STORAGE_KEY = "tongbu-tonglu:v1";
 interface StoreValue {
   logs: LogEntry[];
   ready: boolean; // 是否已从 localStorage 载入（避免 SSR/首帧闪烁）
+  persistError: string | null; // 写入 localStorage 失败（如空间已满）
+  dismissPersistError: () => void;
   addLog: (entry: Omit<LogEntry, "id">) => void;
   updateLog: (id: string, patch: Partial<Omit<LogEntry, "id">>) => void;
   removeLog: (id: string) => void;
@@ -48,6 +50,7 @@ function loadInitial(): LogEntry[] {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [ready, setReady] = useState(false);
+  const [persistError, setPersistError] = useState<string | null>(null);
 
   // 挂载后从 localStorage 载入
   useEffect(() => {
@@ -61,10 +64,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const state: AppState = { logs };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setPersistError(null);
     } catch {
-      // 忽略写入失败（例如隐私模式配额限制）
+      // 写入失败（多为照片过多、空间已满）——提示用户，避免默默丢数据
+      setPersistError(
+        "本地存储空间可能已满，最近的改动未能保存。请到「数据」导出备份，并删除部分照片后重试。",
+      );
     }
   }, [logs, ready]);
+
+  const dismissPersistError = useCallback(() => setPersistError(null), []);
 
   const addLog = useCallback((entry: Omit<LogEntry, "id">) => {
     setLogs((prev) => [...prev, { ...entry, id: genId() }]);
@@ -94,6 +103,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const value: StoreValue = {
     logs,
     ready,
+    persistError,
+    dismissPersistError,
     addLog,
     updateLog,
     removeLog,
