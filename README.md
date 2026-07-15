@@ -1,53 +1,35 @@
 # 同步同路 · 半年计划 — 修行进度追踪
 
-追踪 20 个修行项目的完成进度。每个项目达标得 1 分，满分 20；含计分表，可拍照 / 附链接作为证明。数据保存在浏览器本地（localStorage），可导出 / 导入 JSON 备份。
+15 人一起追踪 20 个修行项目的完成进度。每个项目达标得 1 分，满分 20；含计分表与**共享排行榜**，可拍照 / 附链接作为证明。**登录后每人有自己的记录，数据存在 Supabase 数据库。**
 
 > 计划期限：2026-07-15 → 2027-01-15
 
-## 本地运行
+## 快速开始
+
+后端（Supabase）设置见 **[SETUP.md](SETUP.md)** —— 填环境变量、建表、导入 15 人、本地运行、部署 Vercel，五步走完。
 
 ```bash
 npm install
-npm run dev
-# 打开 http://localhost:3000
-```
-
-其他命令：`npm run build`（生产构建）、`npm run start`（跑构建产物）。
-
-## 部署到 Vercel
-
-**方式一：GitHub + Vercel（推荐）**
-
-```bash
-git add -A && git commit -m "init"
-# 在 GitHub 新建仓库后：
-git remote add origin <你的仓库地址>
-git push -u origin main
-```
-
-然后到 [vercel.com](https://vercel.com) → New Project → 导入该仓库 → Deploy。框架会自动识别为 Next.js，无需任何环境变量。
-
-**方式二：Vercel CLI**
-
-```bash
-npm i -g vercel
-vercel          # 首次，按提示登录 / 关联项目
-vercel --prod   # 部署到生产
+cp .env.local.example .env.local   # 填入你的 Supabase 值
+npm run dev                        # http://localhost:3000
 ```
 
 ## 使用说明
 
-- **主页**：顶部总分与进度条 + 已达标 / 进行中 / 剩余天数；下方按「闻思 / 修持 / 艺术 / 身心 / 福德」分组的项目卡片。点卡片记录一次。
-- **记录**：填日期、备注；可**拍照 / 选图**作为证明（自动压缩后存本地），或附**视频 / 链接**。
-- **计分表**：每个项目的进度、是否得分，底部有合计。
-- **数据**：右上角「数据」可导出 / 导入 / 清空。⚠️ 数据只存在本浏览器，换设备或清缓存前请先导出备份。
+- **登录**：从名单下拉选自己的名字 + 密码（首次默认 `123456`）。右上角菜单可改密码 / 退出。
+- **主页**：两个圆盘（总进度 / 剩余天数）+ 按「闻思 / 修持 / 艺术 / 身心 / 福德」分组的项目卡片，每张右下角有「记录 / 打卡」按钮。
+- **记录**：填日期、备注；可**拍照 / 选图**作为证明（自动压缩后存数据库），或附**视频 / 链接**。
+- **每周打卡**（每周静坐 / 有氧 / 重训）：同一周只能记录一次，防止一次刷满。
+- **计分表**：每个项目的进度、是否得分，底部合计。
+- **排行榜**：按总分排名；同分时，**越早达到该分数**的人排前面。
 
 ## 调整项目参数
 
-所有项目定义、目标次数（如每周类 26、素食 24 餐、抄经 10 篇、听开示 10 次）都在
-[`lib/activities.ts`](lib/activities.ts) 里，直接改数字即可。
-计分规则（达标 = 做满 target 次）在 [`lib/scoring.ts`](lib/scoring.ts)。
+项目定义与目标次数（每周类 26、素食 24、抄经 10、听开示 10…）都在
+[`lib/activities.ts`](lib/activities.ts)，改数字即可。参与者名字在
+[`scripts/seed.mjs`](scripts/seed.mjs) 顶部，改后重跑 seed。
 
 ## 技术栈
 
-Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS v4 · 纯客户端 + localStorage（无后端）。
+Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS v4 ·
+Supabase（Auth + Postgres + RLS）。排行榜在服务器端用 service_role 聚合，仅返回名字与分数，不暴露他人记录。

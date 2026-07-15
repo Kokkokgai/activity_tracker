@@ -18,12 +18,21 @@ export interface ActivityDef {
 }
 
 export interface LogEntry {
-  id: string; // crypto.randomUUID()
+  id: string; // crypto.randomUUID() / DB uuid
   activityId: number;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD（记录归属日期）
   note?: string;
   photo?: string; // 拍照证明：压缩后的图片 data URL
   videoUrl?: string; // 观看视频 / 群消息等链接
+  createdAt?: string; // 真实创建时间（ISO）——排行榜同分时比先后
+}
+
+// 排行榜单行
+export interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  score: number;
+  reachedAt: string | null; // 达到当前分数的时间（同分时越早越靠前）
 }
 
 export interface AppState {

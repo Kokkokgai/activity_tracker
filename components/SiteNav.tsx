@@ -3,18 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DataMenu } from "./DataMenu";
+import { UserMenu } from "./UserMenu";
 
 const links = [
   { href: "/", label: "主页" },
   { href: "/scoreboard", label: "计分表" },
+  { href: "/leaderboard", label: "排行榜" },
 ];
 
 export function SiteNav() {
   const pathname = usePathname();
+  if (pathname === "/login") return null; // 登录页不显示导航
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-5xl items-center gap-4 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/icon/logo.png"
@@ -24,22 +27,23 @@ export function SiteNav() {
             priority
             className="h-8 w-8 rounded-lg object-cover"
           />
-          <span className="font-kai text-[22px] leading-none tracking-wide text-ink">
+          <span className="font-kai hidden text-[22px] leading-none tracking-wide text-ink sm:inline">
             同步同路
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 self-stretch">
+        <nav className="flex items-center gap-0.5 self-stretch">
           {links.map((l) => {
             const active = pathname === l.href;
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`flex items-center border-b-2 px-3 text-sm font-bold transition-colors ${active
-                  ? "border-brand text-ink"
-                  : "border-transparent text-muted hover:text-ink"
-                  }`}
+                className={`flex items-center border-b-2 px-2.5 text-sm font-bold transition-colors sm:px-3 ${
+                  active
+                    ? "border-brand text-ink"
+                    : "border-transparent text-muted hover:text-ink"
+                }`}
               >
                 {l.label}
               </Link>
@@ -48,7 +52,7 @@ export function SiteNav() {
         </nav>
 
         <div className="ml-auto">
-          <DataMenu />
+          <UserMenu />
         </div>
       </div>
     </header>

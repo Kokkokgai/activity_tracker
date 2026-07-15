@@ -59,3 +59,51 @@ export function computeAll(logs: LogEntry[]): {
     totals: { score, max: ACTIVITIES.length, inProgress },
   };
 }
+
+// 排行榜用：算一个人的总分，以及「达到当前分数的时间」（同分比先后）。
+// 每完成一个项目 +1 分；某项目的完成时间 = 达标那一刻记录的 createdAt。
+// 整体 reachedAt = 已达标项目里最晚的那个完成时间（= 拿到当前这一分的时刻）。
+function ts(l: LogEntry): number {
+  return Date.parse(l.createdAt ?? l.date);
+}
+
+export function reachedInfo(allLogs: LogEntry[]): {
+  score: number;
+  reachedAt: string | null;
+} {
+  let score = 0;
+  let reachedAt: string | null = null;
+
+  for (const def of ACTIVITIES) {
+    const aLogs = allLogs
+      .filter((l) => l.activityId === def.id)
+      .sort((a, b) => ts(a) - ts(b));
+
+    let completedAt: string | null = null;
+    if (def.weekly) {
+      const seen = new Set<string>();
+      for (const l of aLogs) {
+        const wk = weekKey(l.date);
+        if (!seen.has(wk)) {
+          seen.add(wk);
+          if (seen.size >= def.target) {
+            completedAt = l.createdAt ?? l.date;
+            break;
+          }
+        }
+      }
+    } else if (aLogs.length >= def.target) {
+      const l = aLogs[def.target - 1];
+      completedAt = l.createdAt ?? l.date;
+    }
+
+    if (completedAt) {
+      score += 1;
+      if (reachedAt === null || Date.parse(completedAt) > Date.parse(reachedAt)) {
+        reachedAt = completedAt;
+      }
+    }
+  }
+
+  return { score, reachedAt };
+}

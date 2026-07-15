@@ -6,110 +6,182 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import type { AppState, LogEntry } from "./types";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type { LogEntry } from "./types";
 import { computeAll } from "./scoring";
 
-const STORAGE_KEY = "tongbu-tonglu:v1";
-
 interface StoreValue {
+  ready: boolean; // 初始加载完成
+  userId: string | null;
+  userName: string | null;
   logs: LogEntry[];
-  ready: boolean; // 是否已从 localStorage 载入（避免 SSR/首帧闪烁）
-  persistError: string | null; // 写入 localStorage 失败（如空间已满）
-  dismissPersistError: () => void;
-  addLog: (entry: Omit<LogEntry, "id">) => void;
-  updateLog: (id: string, patch: Partial<Omit<LogEntry, "id">>) => void;
-  removeLog: (id: string) => void;
-  replaceAll: (logs: LogEntry[]) => void; // 导入用
-  clearAll: () => void;
+  error: string | null;
+  addLog: (entry: Omit<LogEntry, "id" | "createdAt">) => Promise<void>;
+  removeLog: (id: string) => Promise<void>;
+  signOut: () => Promise<void>;
   compute: ReturnType<typeof computeAll>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-function genId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+type Row = {
+  id: string;
+  activity_id: number;
+  logged_on: string;
+  note: string | null;
+  photo: string | null;
+  video_url: string | null;
+  created_at: string | null;
+};
 
-function loadInitial(): LogEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as AppState;
-    return Array.isArray(parsed.logs) ? parsed.logs : [];
-  } catch {
-    return [];
-  }
+function mapRow(r: Row): LogEntry {
+  return {
+    id: r.id,
+    activityId: r.activity_id,
+    date: r.logged_on,
+    note: r.note ?? undefined,
+    photo: r.photo ?? undefined,
+    videoUrl: r.video_url ?? undefined,
+    createdAt: r.created_at ?? undefined,
+  };
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+
   const [ready, setReady] = useState(false);
-  const [persistError, setPersistError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const loadedFor = useRef<string | null>(null);
 
-  // 挂载后从 localStorage 载入
-  useEffect(() => {
-    setLogs(loadInitial());
-    setReady(true);
-  }, []);
-
-  // 变更时写回 localStorage
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      const state: AppState = { logs };
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      setPersistError(null);
-    } catch {
-      // 写入失败（多为照片过多、空间已满）——提示用户，避免默默丢数据
-      setPersistError(
-        "本地存储空间可能已满，最近的改动未能保存。请到「数据」导出备份，并删除部分照片后重试。",
-      );
-    }
-  }, [logs, ready]);
-
-  const dismissPersistError = useCallback(() => setPersistError(null), []);
-
-  const addLog = useCallback((entry: Omit<LogEntry, "id">) => {
-    setLogs((prev) => [...prev, { ...entry, id: genId() }]);
-  }, []);
-
-  const updateLog = useCallback(
-    (id: string, patch: Partial<Omit<LogEntry, "id">>) => {
-      setLogs((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, ...patch } : l)),
-      );
+  const loadFor = useCallback(
+    async (uid: string) => {
+      loadedFor.current = uid;
+      const [{ data: player }, { data: rows, error: logErr }] =
+        await Promise.all([
+          supabase.from("players").select("name").eq("id", uid).maybeSingle(),
+          supabase
+            .from("logs")
+            .select("*")
+            .eq("user_id", uid)
+            .order("created_at", { ascending: true }),
+        ]);
+      setUserId(uid);
+      setUserName(player?.name ?? "我");
+      setLogs(logErr ? [] : (rows as Row[]).map(mapRow));
+      if (logErr) setError("读取记录失败：" + logErr.message);
     },
-    [],
+    [supabase],
   );
 
-  const removeLog = useCallback((id: string) => {
-    setLogs((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!active) return;
+      if (user) await loadFor(user.id);
+      setReady(true);
+    })();
 
-  const replaceAll = useCallback((next: LogEntry[]) => {
-    setLogs(next);
-  }, []);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user?.id ?? null;
+      if (event === "SIGNED_OUT" || !uid) {
+        loadedFor.current = null;
+        setUserId(null);
+        setUserName(null);
+        setLogs([]);
+      } else if (uid !== loadedFor.current) {
+        loadFor(uid);
+      }
+    });
 
-  const clearAll = useCallback(() => setLogs([]), []);
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase, loadFor]);
+
+  const addLog = useCallback(
+    async (entry: Omit<LogEntry, "id" | "createdAt">) => {
+      if (!userId) return;
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: LogEntry = {
+        ...entry,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+      };
+      setLogs((prev) => [...prev, optimistic]);
+
+      const { data, error: insErr } = await supabase
+        .from("logs")
+        .insert({
+          user_id: userId,
+          activity_id: entry.activityId,
+          logged_on: entry.date,
+          note: entry.note ?? null,
+          photo: entry.photo ?? null,
+          video_url: entry.videoUrl ?? null,
+        })
+        .select()
+        .single();
+
+      if (insErr || !data) {
+        setLogs((prev) => prev.filter((l) => l.id !== tempId));
+        setError("保存失败：" + (insErr?.message ?? "未知错误"));
+        return;
+      }
+      const saved = mapRow(data as Row);
+      setLogs((prev) => prev.map((l) => (l.id === tempId ? saved : l)));
+    },
+    [supabase, userId],
+  );
+
+  const removeLog = useCallback(
+    async (id: string) => {
+      const prev = logs;
+      setLogs((cur) => cur.filter((l) => l.id !== id));
+      if (id.startsWith("temp-")) return;
+      const { error: delErr } = await supabase.from("logs").delete().eq("id", id);
+      if (delErr) {
+        setLogs(prev); // 回滚
+        setError("删除失败：" + delErr.message);
+      }
+    },
+    [supabase, logs],
+  );
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    loadedFor.current = null;
+    setUserId(null);
+    setUserName(null);
+    setLogs([]);
+    router.push("/login");
+    router.refresh();
+  }, [supabase, router]);
 
   const compute = useMemo(() => computeAll(logs), [logs]);
 
   const value: StoreValue = {
-    logs,
     ready,
-    persistError,
-    dismissPersistError,
+    userId,
+    userName,
+    logs,
+    error,
     addLog,
-    updateLog,
     removeLog,
-    replaceAll,
-    clearAll,
+    signOut,
     compute,
   };
 
