@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 同步同路 · 半年计划 — 修行进度追踪
 
-## Getting Started
+追踪 20 个修行项目的完成度与用时。每个项目达标得 1 分，满分 20；含内置计时器、计分表、以及「每分用时」统计。数据保存在浏览器本地（localStorage），可导出 / 导入 JSON 备份。
 
-First, run the development server:
+> 计划期限：2026-07-15 → 2027-01-15
+
+## 本地运行
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 打开 http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+其他命令：`npm run build`（生产构建）、`npm run start`（跑构建产物）。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 部署到 Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**方式一：GitHub + Vercel（推荐）**
 
-## Learn More
+```bash
+git add -A && git commit -m "init"
+# 在 GitHub 新建仓库后：
+git remote add origin <你的仓库地址>
+git push -u origin main
+```
 
-To learn more about Next.js, take a look at the following resources:
+然后到 [vercel.com](https://vercel.com) → New Project → 导入该仓库 → Deploy。框架会自动识别为 Next.js，无需任何环境变量。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**方式二：Vercel CLI**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm i -g vercel
+vercel          # 首次，按提示登录 / 关联项目
+vercel --prod   # 部署到生产
+```
 
-## Deploy on Vercel
+## 使用说明
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **主页**：顶部总分环 + 累计用时 / 每分用时；下方按「闻思 / 修持 / 艺术 / 身心 / 福德」分组的项目卡片。点卡片记录一次。
+- **记录**：可用计时器（开始 / 暂停 / 填入用时）或手动填分钟；可加备注和证明链接（照片 / 视频 / 群消息）。
+- **计分表**：每个项目的进度、是否得分、累计用时、每分用时，底部有合计。
+- **数据**：右上角「数据」可导出 / 导入 / 清空。⚠️ 数据只存在本浏览器，换设备或清缓存前请先导出备份。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 调整项目参数
+
+所有项目定义、目标次数（如每周类 26、素食 24 餐、抄经 10 篇、听开示 10 次）都在
+[`lib/activities.ts`](lib/activities.ts) 里，直接改数字即可。
+计分规则（含 #18「≥3 次且累计 ≥10 小时」的双条件）在 [`lib/scoring.ts`](lib/scoring.ts)。
+
+## 技术栈
+
+Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS v4 · 纯客户端 + localStorage（无后端）。
