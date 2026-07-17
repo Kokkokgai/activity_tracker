@@ -171,11 +171,12 @@ export function LogDialog({
             )}
           </button>
         )}
+        {/* 不要加 capture 属性：一旦加上，手机会直接开相机，
+            不给「从相册选图」的选项。只留 accept，系统就会让用户二选一。 */}
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="hidden"
           onChange={onPickPhoto}
         />
