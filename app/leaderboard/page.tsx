@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { reachedInfo } from "@/lib/scoring";
@@ -77,7 +78,7 @@ export default async function LeaderboardPage() {
         </h1>
         <p className="mt-0.5 text-sm text-muted">
           按总分排名，满分 {max}。同分时，<span className="text-ink">越早达到</span>
-          该分数的人排在前面。
+          该分数的人排在前面。点任意一位可查看 TA 的进度与记录。
         </p>
       </div>
 
@@ -86,42 +87,46 @@ export default async function LeaderboardPage() {
           const isMe = e.userId === user?.id;
           const rank = i + 1;
           return (
-            <li
-              key={e.userId}
-              className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm ${
-                isMe
-                  ? "border-brand bg-brand-soft"
-                  : "border-border bg-surface"
-              }`}
-            >
-              <div className="w-8 shrink-0 text-center">
-                {rank <= 3 ? (
-                  <span className="text-xl">{MEDALS[rank - 1]}</span>
-                ) : (
-                  <span className="stat-num text-base text-muted">{rank}</span>
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-bold text-ink">{e.name}</span>
-                  {isMe && (
-                    <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      我
-                    </span>
+            <li key={e.userId}>
+              <Link
+                href={`/leaderboard/${e.userId}`}
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm transition-shadow hover:shadow-md ${
+                  isMe ? "border-brand bg-brand-soft" : "border-border bg-surface"
+                }`}
+              >
+                <div className="w-8 shrink-0 text-center">
+                  {rank <= 3 ? (
+                    <span className="text-xl">{MEDALS[rank - 1]}</span>
+                  ) : (
+                    <span className="stat-num text-base text-muted">{rank}</span>
                   )}
                 </div>
-                <div className="stat-label mt-0.5">
-                  {e.reachedAt
-                    ? `达到于 ${formatReached(e.reachedAt)}`
-                    : "尚未得分"}
-                </div>
-              </div>
 
-              <div className="shrink-0 text-right">
-                <div className="stat-num text-2xl text-brand">{e.score}</div>
-                <div className="stat-label">/ {max} 分</div>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-bold text-ink">{e.name}</span>
+                    {isMe && (
+                      <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        我
+                      </span>
+                    )}
+                  </div>
+                  <div className="stat-label mt-0.5">
+                    {e.reachedAt
+                      ? `达到于 ${formatReached(e.reachedAt)}`
+                      : "尚未得分"}
+                  </div>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <div className="stat-num text-2xl text-brand">{e.score}</div>
+                  <div className="stat-label">/ {max} 分</div>
+                </div>
+
+                <span className="shrink-0 text-muted" aria-hidden>
+                  ›
+                </span>
+              </Link>
             </li>
           );
         })}

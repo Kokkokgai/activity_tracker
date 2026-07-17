@@ -6,6 +6,7 @@ import { progressFor, isWeekLogged } from "@/lib/scoring";
 import { compressImage } from "@/lib/image";
 import type { ActivityDef } from "@/lib/types";
 import { Modal } from "./Modal";
+import { LogList } from "./LogList";
 
 function todayLocal(): string {
   const d = new Date();
@@ -213,51 +214,13 @@ export function LogDialog({
           : "+ 保存这一次记录"}
       </button>
 
-      {/* 历史记录 */}
+      {/* 历史记录：点一条可展开看大图与完整备注 */}
       {progress.logs.length > 0 && (
         <div className="mt-6">
           <div className="mb-2 text-xs font-medium text-muted">
-            已记录 {progress.logs.length} 次
+            已记录 {progress.logs.length} 次 · 点一条看详情
           </div>
-          <ul className="divide-y divide-border rounded-xl border border-border">
-            {progress.logs.map((l) => (
-              <li key={l.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                {l.photo && (
-                  <a href={l.photo} target="_blank" rel="noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={l.photo}
-                      alt="证明"
-                      className="h-9 w-9 shrink-0 rounded object-cover"
-                    />
-                  </a>
-                )}
-                <span className="tnum shrink-0 text-muted">{l.date}</span>
-                {l.note && (
-                  <span className="truncate text-ink" title={l.note}>
-                    {l.note}
-                  </span>
-                )}
-                {l.videoUrl && (
-                  <a
-                    href={l.videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 text-brand-strong underline"
-                  >
-                    链接
-                  </a>
-                )}
-                <button
-                  onClick={() => removeLog(l.id)}
-                  className="focusring ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs text-danger hover:bg-surface-2"
-                  aria-label="删除这条记录"
-                >
-                  删除
-                </button>
-              </li>
-            ))}
-          </ul>
+          <LogList logs={progress.logs} onDelete={removeLog} />
         </div>
       )}
     </Modal>
