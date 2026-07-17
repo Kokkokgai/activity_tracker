@@ -5,7 +5,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-// ⬇⬇ 名单（按计划里的顺序）。若有名字打错，改这里再重跑即可。
+// ⬇⬇ 参与者名单（按计划里的顺序）。若有名字打错，改这里再重跑即可。
 const NAMES = [
   "郑轩屹",
   "颜善沁",
@@ -23,6 +23,9 @@ const NAMES = [
   "欣莹",
   "淑盈",
 ];
+
+// ⬇⬇ 围观者：只看排行榜与大家的记录，自己不记录、不参与排名。
+const VIEWERS = ["师父"];
 
 const PASSWORD = "123456";
 const DOMAIN = "tongbutonglu.app"; // 内部登录邮箱域名（无需真实存在）
@@ -58,32 +61,52 @@ async function existingEmailToId() {
 
 const existing = await existingEmailToId();
 
-for (let i = 0; i < NAMES.length; i++) {
-  const name = NAMES[i];
-  const email = `p${String(i + 1).padStart(2, "0")}@${DOMAIN}`;
-  let id = existing.get(email);
+// 参与者 p01..p15（sort_order 1..15）+ 围观者 v01..（sort_order 100+，排在登录名单末尾）
+const PEOPLE = [
+  ...NAMES.map((name, i) => ({
+    name,
+    role: "player",
+    email: `p${String(i + 1).padStart(2, "0")}@${DOMAIN}`,
+    sort_order: i + 1,
+  })),
+  ...VIEWERS.map((name, i) => ({
+    name,
+    role: "viewer",
+    email: `v${String(i + 1).padStart(2, "0")}@${DOMAIN}`,
+    sort_order: 100 + i,
+  })),
+];
+
+for (const p of PEOPLE) {
+  let id = existing.get(p.email);
 
   if (!id) {
     const { data, error } = await admin.auth.admin.createUser({
-      email,
+      email: p.email,
       password: PASSWORD,
       email_confirm: true,
     });
     if (error) {
-      console.error(`✗ 创建 ${name} 失败：`, error.message);
+      console.error(`✗ 创建 ${p.name} 失败：`, error.message);
       continue;
     }
     id = data.user.id;
-    console.log(`✓ 新建账号 ${name}  (${email})`);
+    console.log(`✓ 新建账号 ${p.name}  (${p.email})  [${p.role}]`);
   } else {
-    console.log(`· 已存在   ${name}  (${email})`);
+    console.log(`· 已存在   ${p.name}  (${p.email})  [${p.role}]`);
   }
 
-  const { error: upErr } = await admin
-    .from("players")
-    .upsert({ id, name, email, sort_order: i + 1 });
-  if (upErr) console.error(`✗ 写入 players（${name}）失败：`, upErr.message);
+  const { error: upErr } = await admin.from("players").upsert({
+    id,
+    name: p.name,
+    email: p.email,
+    role: p.role,
+    sort_order: p.sort_order,
+  });
+  if (upErr) console.error(`✗ 写入 players（${p.name}）失败：`, upErr.message);
 }
 
-console.log(`\n完成，共 ${NAMES.length} 人。默认密码：${PASSWORD}`);
+console.log(
+  `\n完成：${NAMES.length} 位参与者 + ${VIEWERS.length} 位围观者。默认密码：${PASSWORD}`,
+);
 process.exit(0);

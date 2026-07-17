@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import type { ActivityDef } from "@/lib/types";
+import { useViewerRedirect } from "@/lib/useViewerRedirect";
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { LogDialog } from "@/components/LogDialog";
 
 export default function ScoreboardPage() {
   const [active, setActive] = useState<ActivityDef | null>(null);
+  const redirecting = useViewerRedirect();
+
+  if (redirecting) return null; // 师父等围观者 → 排行榜
 
   return (
     <div className="space-y-4">

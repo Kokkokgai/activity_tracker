@@ -33,7 +33,7 @@ SUPABASE_SERVICE_ROLE_KEY=你的-service_role-key
 Supabase 后台 → **SQL Editor** → 新建查询 → 把 [`supabase/schema.sql`](supabase/schema.sql)
 全部内容粘进去 → **Run**。这会建 `players` 和 `logs` 两张表，并配好 RLS（每人只能读写自己的记录）。
 
-## 3. 导入 15 位参与者（创建账号）
+## 3. 导入名单（创建账号）
 
 在项目根目录运行（Node 20+）：
 
@@ -41,8 +41,18 @@ Supabase 后台 → **SQL Editor** → 新建查询 → 把 [`supabase/schema.sq
 node --env-file=.env.local scripts/seed.mjs
 ```
 
-- 会创建 15 个账号，默认密码 **123456**，并写入 `players` 名单。
-- 名字在 [`scripts/seed.mjs`](scripts/seed.mjs) 顶部的 `NAMES` 数组里——**要改名字就改这里再重跑**（幂等，不会重复建号）。
+- 会创建 **15 位参与者**（`p01..p15@`）+ **1 位围观者「师父」**（`v01@`），默认密码都是 **123456**。
+- 名单在 [`scripts/seed.mjs`](scripts/seed.mjs) 顶部：`NAMES`（参与者）和 `VIEWERS`（围观者）。
+  **要改名字或加人就改这里再重跑**（幂等，不会重复建号）。
+
+### 两种角色
+
+| 角色 | 谁 | 能做什么 |
+|---|---|---|
+| `player` | 15 位参与者 | 记录打卡、看自己的进度与计分表、上排行榜 |
+| `viewer` | 师父 | **只看排行榜**和每个人的进度与记录；不记录、不计分、不出现在排名里 |
+
+> 已经建过表的项目：**重新跑一次 [`supabase/schema.sql`](supabase/schema.sql)**（会补上 `role` 字段，可安全重复运行），再重跑 seed 就会加上师父。
 
 ## 4. 本地运行
 
@@ -60,6 +70,14 @@ npm run dev
 2. Vercel 项目 → **Settings → Environment Variables**，加上同样的三个变量
    （`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`）。
 3. Deploy。
+
+### ⚡ 区域设置（很影响速度）
+
+[`vercel.json`](vercel.json) 已把函数区域设为 **`hnd1`（东京）**，与 Supabase 项目所在区（东北亚 / 东京）一致。
+Vercel 默认在美国东部，跨太平洋每次请求要多花 200ms+，页面会明显变慢。
+
+> **换了 Supabase 区域就要同步改 `vercel.json`**：新加坡 `sin1`、东京 `hnd1`、美东 `iad1`。
+> 也可在 Vercel → Settings → Functions → Function Region 里确认。
 
 ---
 

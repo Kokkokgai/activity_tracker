@@ -1,14 +1,26 @@
 -- 同步同路 · 半年计划 —— 数据库结构
 -- 在 Supabase 后台 → SQL Editor 里粘贴运行一次。
 
--- ============ players：参与者名单（登录下拉用，公开可读）============
+-- ============ players：名单（登录下拉用，公开可读）============
+-- role: 'player' = 参与者（计分、上排行榜）；'viewer' = 围观者（如师父，只看不记录、不排名）
 create table if not exists public.players (
   id         uuid primary key references auth.users (id) on delete cascade,
   name       text not null,
   email      text not null,
+  role       text not null default 'player',
   sort_order int  not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- 已建过表的项目：补上 role 字段（重复运行本文件也安全）
+alter table public.players add column if not exists role text not null default 'player';
+
+do $$ begin
+  alter table public.players
+    add constraint players_role_check check (role in ('player', 'viewer'));
+exception
+  when duplicate_object then null;
+end $$;
 
 alter table public.players enable row level security;
 

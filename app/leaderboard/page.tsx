@@ -33,9 +33,11 @@ export default async function LeaderboardPage() {
 
   const admin = createAdminClient();
   const [{ data: players }, { data: logs }] = await Promise.all([
+    // 只排参与者；围观者（师父）不计分、不上榜
     admin
       .from("players")
       .select("id,name,sort_order")
+      .eq("role", "player")
       .order("sort_order", { ascending: true }),
     admin.from("logs").select("user_id,activity_id,logged_on,created_at"),
   ]);

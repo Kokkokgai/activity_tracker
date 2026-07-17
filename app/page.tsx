@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useStore } from "@/lib/store";
+import { useViewerRedirect } from "@/lib/useViewerRedirect";
 import { CATEGORY_ORDER } from "@/lib/activities";
 import type { ActivityDef } from "@/lib/types";
 import { ScoreSummary } from "@/components/ScoreSummary";
@@ -19,6 +20,9 @@ const CATEGORY_HINT: Record<string, string> = {
 export default function DashboardPage() {
   const { compute } = useStore();
   const [active, setActive] = useState<ActivityDef | null>(null);
+  const redirecting = useViewerRedirect();
+
+  if (redirecting) return null; // 师父等围观者 → 排行榜
 
   return (
     <div className="space-y-8">

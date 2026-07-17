@@ -18,6 +18,7 @@ interface StoreValue {
   ready: boolean; // 初始加载完成
   userId: string | null;
   userName: string | null;
+  isViewer: boolean; // 围观者（如师父）：只看排行榜，不记录、不排名
   logs: LogEntry[];
   error: string | null;
   addLog: (entry: Omit<LogEntry, "id" | "createdAt">) => Promise<void>;
@@ -57,6 +58,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isViewer, setIsViewer] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const loadedFor = useRef<string | null>(null);
@@ -66,7 +68,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       loadedFor.current = uid;
       const [{ data: player }, { data: rows, error: logErr }] =
         await Promise.all([
-          supabase.from("players").select("name").eq("id", uid).maybeSingle(),
+          supabase
+            .from("players")
+            .select("name,role")
+            .eq("id", uid)
+            .maybeSingle(),
           supabase
             .from("logs")
             .select("*")
@@ -75,6 +81,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ]);
       setUserId(uid);
       setUserName(player?.name ?? "我");
+      setIsViewer(player?.role === "viewer");
       setLogs(logErr ? [] : (rows as Row[]).map(mapRow));
       if (logErr) setError("读取记录失败：" + logErr.message);
     },
@@ -100,6 +107,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         loadedFor.current = null;
         setUserId(null);
         setUserName(null);
+        setIsViewer(false);
         setLogs([]);
       } else if (uid !== loadedFor.current) {
         loadFor(uid);
@@ -166,6 +174,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loadedFor.current = null;
     setUserId(null);
     setUserName(null);
+    setIsViewer(false);
     setLogs([]);
     router.push("/login");
     router.refresh();
@@ -177,6 +186,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ready,
     userId,
     userName,
+    isViewer,
     logs,
     error,
     addLog,
