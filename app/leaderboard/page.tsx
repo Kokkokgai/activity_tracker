@@ -12,6 +12,7 @@ type LogRow = {
   user_id: string;
   activity_id: number;
   logged_on: string;
+  hours: number | string | null;
   created_at: string | null;
 };
 
@@ -39,7 +40,7 @@ export default async function LeaderboardPage() {
       .select("id,name,sort_order")
       .eq("role", "player")
       .order("sort_order", { ascending: true }),
-    admin.from("logs").select("user_id,activity_id,logged_on,created_at"),
+    admin.from("logs").select("user_id,activity_id,logged_on,hours,created_at"),
   ]);
 
   const logsByUser = new Map<string, LogEntry[]>();
@@ -49,6 +50,7 @@ export default async function LeaderboardPage() {
       id: "",
       activityId: r.activity_id,
       date: r.logged_on,
+      hours: r.hours == null ? undefined : Number(r.hours),
       createdAt: r.created_at ?? undefined,
     });
     logsByUser.set(r.user_id, arr);

@@ -173,10 +173,10 @@ export const ACTIVITIES: ActivityDef[] = [
     id: 18,
     title: "弘法会 / 讲座 / 读书会",
     description:
-      "至少参与 3 次弘法会 / 线上佛教讲座 / 读书会（建议共计约 10 小时）。",
-    type: "counted",
-    target: 3,
-    unit: "次",
+      "参与弘法会 / 线上佛教讲座 / 读书会，累计满 10 小时。每次记录可选 0.5～3 小时。",
+    type: "hours",
+    target: 10,
+    unit: "小时",
     category: "闻思",
   },
   {

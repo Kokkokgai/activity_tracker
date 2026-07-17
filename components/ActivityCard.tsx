@@ -1,6 +1,7 @@
 "use client";
 
 import type { ActivityProgress } from "@/lib/types";
+import { progressText } from "@/lib/scoring";
 
 export function ActivityCard({
   progress,
@@ -11,12 +12,7 @@ export function ActivityCard({
 }) {
   const { def, count, done, fraction } = progress;
   const pct = Math.round(fraction * 100);
-  const progressText =
-    def.type === "single"
-      ? done
-        ? "已完成"
-        : "未开始"
-      : `${Math.min(count, def.target)} / ${def.target} ${def.unit}`;
+  const text = progressText(progress);
 
   return (
     <div
@@ -60,7 +56,7 @@ export function ActivityCard({
           <div
             className={`stat-num text-sm ${done ? "text-success" : "text-ink"}`}
           >
-            {progressText}
+            {text}
           </div>
           <div className="stat-label mt-0.5">进度</div>
         </div>

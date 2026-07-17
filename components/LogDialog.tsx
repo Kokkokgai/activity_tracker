@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
-import { progressFor, isWeekLogged } from "@/lib/scoring";
+import { progressFor, isWeekLogged, formatHours } from "@/lib/scoring";
 import { compressImage } from "@/lib/image";
 import type { ActivityDef } from "@/lib/types";
 import { Modal } from "./Modal";
@@ -14,6 +14,9 @@ function todayLocal(): string {
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
 }
 
+// hours 类项目可选的时长：半小时 ~ 三小时
+const HOUR_CHOICES = [0.5, 1, 1.5, 2, 2.5, 3];
+
 export function LogDialog({
   activity,
   onClose,
@@ -23,6 +26,7 @@ export function LogDialog({
 }) {
   const { logs, addLog, removeLog } = useStore();
   const [date, setDate] = useState(todayLocal());
+  const [hours, setHours] = useState<number>(1);
   const [note, setNote] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [photo, setPhoto] = useState<string>("");
@@ -33,6 +37,7 @@ export function LogDialog({
   useEffect(() => {
     if (activity) {
       setDate(todayLocal());
+      setHours(1);
       setNote("");
       setVideoUrl("");
       setPhoto("");
@@ -71,6 +76,7 @@ export function LogDialog({
     addLog({
       activityId: activity.id,
       date: date || todayLocal(),
+      hours: activity.type === "hours" ? hours : undefined,
       note: note.trim() || undefined,
       photo: photo || undefined,
       videoUrl: videoUrl.trim() || undefined,
@@ -98,8 +104,9 @@ export function LogDialog({
           {progress.done ? "✓ 已达标 · 得 1 分" : "进行中 · 未得分"}
         </span>
         <span className="text-muted">
-          进度 {Math.min(progress.count, activity.target)}/{activity.target}{" "}
-          {activity.unit}
+          {activity.type === "hours"
+            ? `进度 ${formatHours(progress.hours)}/${activity.target} ${activity.unit}`
+            : `进度 ${Math.min(progress.count, activity.target)}/${activity.target} ${activity.unit}`}
         </span>
       </div>
 
@@ -118,6 +125,35 @@ export function LogDialog({
           className="focusring w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
         />
       </label>
+
+      {/* 时长选择（仅 hours 类项目，如弘法会） */}
+      {activity.type === "hours" && (
+        <div className="mt-3">
+          <span className="mb-1.5 block text-xs font-medium text-muted">
+            这次时长
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {HOUR_CHOICES.map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => setHours(h)}
+                className={`focusring rounded-full border px-3 py-1.5 text-sm font-bold transition-colors ${
+                  hours === h
+                    ? "border-brand bg-brand text-white"
+                    : "border-border bg-surface text-muted hover:border-brand hover:text-ink"
+                }`}
+              >
+                {h === 0.5 ? "半小时" : `${formatHours(h)} 小时`}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">
+            累计满 {activity.target} 小时得 1 分 · 还差{" "}
+            {formatHours(Math.max(0, activity.target - progress.hours))} 小时
+          </p>
+        </div>
+      )}
 
       <label className="mt-3 block">
         <span className="mb-1 block text-xs font-medium text-muted">

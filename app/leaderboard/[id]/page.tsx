@@ -11,6 +11,7 @@ type LogRow = {
   id: string;
   activity_id: number;
   logged_on: string;
+  hours: number | string | null;
   note: string | null;
   photo: string | null;
   video_url: string | null;
@@ -34,7 +35,7 @@ export default async function PlayerPage({
     admin.from("players").select("id,name").eq("id", id).maybeSingle(),
     admin
       .from("logs")
-      .select("id,activity_id,logged_on,note,photo,video_url,created_at")
+      .select("id,activity_id,logged_on,hours,note,photo,video_url,created_at")
       .eq("user_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -45,6 +46,7 @@ export default async function PlayerPage({
     id: r.id,
     activityId: r.activity_id,
     date: r.logged_on,
+    hours: r.hours == null ? undefined : Number(r.hours),
     note: r.note ?? undefined,
     photo: r.photo ?? undefined,
     videoUrl: r.video_url ?? undefined,

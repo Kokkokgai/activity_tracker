@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatHours } from "@/lib/scoring";
 import type { LogEntry } from "@/lib/types";
 
 // 记录列表：点一条可展开看大图 + 完整备注。
@@ -40,6 +41,11 @@ export function LogList({
                   </span>
                 )}
                 <span className="tnum shrink-0 text-muted">{l.date}</span>
+                {l.hours != null && (
+                  <span className="shrink-0 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand-strong">
+                    {formatHours(l.hours)} 小时
+                  </span>
+                )}
                 {l.note && (
                   <span className="truncate text-ink">{l.note}</span>
                 )}

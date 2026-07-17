@@ -11,10 +11,29 @@ export function progressFor(
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   const count = logs.length;
-  const done = count >= def.target;
-  const fraction = def.target > 0 ? Math.min(count / def.target, 1) : 0;
+  const hours = logs.reduce((s, l) => s + (l.hours ?? 0), 0);
 
-  return { def, count, done, fraction, logs };
+  // hours 类（弘法会）看累计时长；其余看次数
+  const progress = def.type === "hours" ? hours : count;
+  const done = progress >= def.target;
+  const fraction = def.target > 0 ? Math.min(progress / def.target, 1) : 0;
+
+  return { def, count, hours, done, fraction, logs };
+}
+
+// 时长显示：2 → "2"，2.5 → "2.5"
+export function formatHours(h: number): string {
+  return Number.isInteger(h) ? String(h) : String(Math.round(h * 10) / 10);
+}
+
+// 统一的进度文案（卡片、计分表、他人主页共用）
+export function progressText(p: ActivityProgress): string {
+  const { def } = p;
+  if (def.type === "hours") {
+    return `${formatHours(p.hours)} / ${def.target} ${def.unit}`;
+  }
+  if (def.type === "single") return p.done ? "已完成" : "未开始";
+  return `${Math.min(p.count, def.target)} / ${def.target} ${def.unit}`;
 }
 
 // 某天所在周（周一~周日）的唯一键 = 该周周一的日期。
@@ -80,7 +99,17 @@ export function reachedInfo(allLogs: LogEntry[]): {
       .sort((a, b) => ts(a) - ts(b));
 
     let completedAt: string | null = null;
-    if (def.weekly) {
+    if (def.type === "hours") {
+      // 累计时长跨过 target 的那一条记录，就是达标时刻
+      let acc = 0;
+      for (const l of aLogs) {
+        acc += l.hours ?? 0;
+        if (acc >= def.target) {
+          completedAt = l.createdAt ?? l.date;
+          break;
+        }
+      }
+    } else if (def.weekly) {
       const seen = new Set<string>();
       for (const l of aLogs) {
         const wk = weekKey(l.date);

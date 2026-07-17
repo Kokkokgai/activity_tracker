@@ -37,11 +37,15 @@ create table if not exists public.logs (
   user_id     uuid not null references auth.users (id) on delete cascade,
   activity_id int  not null,           -- 对应 lib/activities.ts 里的项目 id (1..20)
   logged_on   date not null,           -- 这次记录归属的日期
+  hours       numeric,                 -- 仅 hours 类项目（弘法会 #18）：这次的时长
   note        text,
   photo       text,                    -- 压缩后的图片 data URL（base64）
   video_url   text,
   created_at  timestamptz not null default now()  -- 真实创建时间（排行榜同分时比先后）
 );
+
+-- 已建过表的项目：补上 hours 字段（重复运行本文件也安全）
+alter table public.logs add column if not exists hours numeric;
 
 alter table public.logs enable row level security;
 

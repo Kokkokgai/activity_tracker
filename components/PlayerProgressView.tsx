@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { computeAll } from "@/lib/scoring";
+import { computeAll, progressText } from "@/lib/scoring";
 import { CATEGORY_ORDER } from "@/lib/activities";
 import type { LogEntry } from "@/lib/types";
 import { LogList } from "./LogList";
@@ -72,12 +72,7 @@ export function PlayerProgressView({
               {catItems.map((i) => {
                 const { def } = i;
                 const p = Math.round(i.fraction * 100);
-                const progressText =
-                  def.type === "single"
-                    ? i.done
-                      ? "已完成"
-                      : "未开始"
-                    : `${Math.min(i.count, def.target)} / ${def.target} ${def.unit}`;
+                const text = progressText(i);
                 return (
                   <div
                     key={def.id}
@@ -120,7 +115,7 @@ export function PlayerProgressView({
                             i.done ? "text-success" : "text-ink"
                           }`}
                         >
-                          {progressText}
+                          {text}
                         </div>
                         <div className="stat-label mt-0.5">进度</div>
                       </div>

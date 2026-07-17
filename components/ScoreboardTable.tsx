@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { progressText } from "@/lib/scoring";
 import type { ActivityDef } from "@/lib/types";
 
 export function ScoreboardTable({
@@ -24,12 +25,8 @@ export function ScoreboardTable({
         <tbody>
           {items.map((i) => {
             const { def } = i;
-            const progressText =
-              def.type === "single"
-                ? i.done
-                  ? "已完成"
-                  : "—"
-                : `${Math.min(i.count, def.target)}/${def.target} ${def.unit}`;
+            const text =
+              def.type === "single" && !i.done ? "—" : progressText(i);
             return (
               <tr
                 key={def.id}
@@ -40,7 +37,7 @@ export function ScoreboardTable({
                   <div className="font-semibold text-ink">{def.title}</div>
                   <div className="text-xs text-muted">{def.category}</div>
                 </td>
-                <td className="px-3 py-3 tnum text-muted">{progressText}</td>
+                <td className="px-3 py-3 tnum text-muted">{text}</td>
                 <td className="px-3 py-3 text-center">
                   {i.done ? (
                     <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-success/15 px-2 text-xs font-bold text-success">

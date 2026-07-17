@@ -33,6 +33,7 @@ type Row = {
   id: string;
   activity_id: number;
   logged_on: string;
+  hours: number | string | null;
   note: string | null;
   photo: string | null;
   video_url: string | null;
@@ -44,6 +45,8 @@ function mapRow(r: Row): LogEntry {
     id: r.id,
     activityId: r.activity_id,
     date: r.logged_on,
+    // numeric 经 PostgREST 可能回传字符串，统一转成数字
+    hours: r.hours == null ? undefined : Number(r.hours),
     note: r.note ?? undefined,
     photo: r.photo ?? undefined,
     videoUrl: r.video_url ?? undefined,
@@ -137,6 +140,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           user_id: userId,
           activity_id: entry.activityId,
           logged_on: entry.date,
+          hours: entry.hours ?? null,
           note: entry.note ?? null,
           photo: entry.photo ?? null,
           video_url: entry.videoUrl ?? null,
